@@ -95,6 +95,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  rill:
+    image: rilldata/rill:latest
+    container_name: rill-data
+    user: "1000:1000"
+    restart: unless-stopped
+    command: ["start", "/rill-data"]
+    ports:
+      - "9009:9009"
+    volumes:
+      # Сюда будешь класть файлы проекта Rill
+      - ./rill-project:/rill-data
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
 volumes:
   kafka-data:
   clickhouse-data:

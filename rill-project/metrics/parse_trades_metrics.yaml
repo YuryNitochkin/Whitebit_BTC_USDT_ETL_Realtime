@@ -1,0 +1,92 @@
+# Metrics view YAML
+# Reference documentation: https://docs.rilldata.com/reference/project-files/metrics-views
+# This file was generated using AI.
+
+version: 1
+type: metrics_view
+
+display_name: Parse Trades
+connector: clickhouse
+model: parse_trades
+timeseries: trade_time
+
+dimensions:
+  - name: side
+    display_name: Side
+    column: side
+  - name: trade_time
+    display_name: Trade Time
+    column: trade_time
+  - name: ingested_at
+    display_name: Ingested At
+    column: ingested_at
+
+measures:
+  - name: trade_count_measure_measure
+    display_name: Trade Count
+    expression: COUNT(trade_id)
+    description: Total number of trades.
+    format_preset: humanize
+  - name: total_amount_measure_measure
+    display_name: Total Amount
+    expression: SUM(amount)
+    description: Sum of traded amounts across all trades.
+    format_preset: humanize
+  - name: average_amount_measure_measure
+    display_name: Average Amount
+    expression: AVG(amount)
+    description: Average traded amount per trade.
+    format_preset: humanize
+  - name: min_amount_measure_measure
+    display_name: Minimum Amount
+    expression: MIN(amount)
+    description: Smallest traded amount observed.
+    format_preset: humanize
+  - name: max_amount_measure_measure
+    display_name: Maximum Amount
+    expression: MAX(amount)
+    description: Largest traded amount observed.
+    format_preset: humanize
+  - name: average_price_measure_measure
+    display_name: Average Price
+    expression: AVG(price)
+    description: Average trade price across all trades.
+    format_preset: humanize
+  - name: min_price_measure_measure
+    display_name: Minimum Price
+    expression: MIN(price)
+    description: Lowest trade price observed.
+    format_preset: humanize
+  - name: max_price_measure_measure
+    display_name: Maximum Price
+    expression: MAX(price)
+    description: Highest trade price observed.
+    format_preset: humanize
+
+explore:
+  display_name: Whitebit BTC_USDT realtime
+  time_ranges:
+    - PT15M
+    - PT30M
+    - PT1H
+    - PT3H
+  theme:
+    light:
+      primary: hsl(180, 100%, 50%)
+      secondary: lightgreen
+    dark:
+      primary: hsl(180, 100%, 50%)
+      secondary: lightgreen
+  defaults:
+    measures:
+      - trade_count_measure_measure
+      - total_amount_measure_measure
+      - average_amount_measure_measure
+      - min_amount_measure_measure
+      - max_amount_measure_measure
+      - average_price_measure_measure
+      - min_price_measure_measure
+      - max_price_measure_measure
+    dimensions:
+      - side
+    time_range: 60m as of latest/m+1m

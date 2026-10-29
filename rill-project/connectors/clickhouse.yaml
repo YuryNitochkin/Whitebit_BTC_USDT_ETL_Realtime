@@ -1,0 +1,12 @@
+# Connector YAML
+# Reference documentation: https://docs.rilldata.com/developers/build/connectors/olap/clickhouse
+
+type: connector
+
+driver: clickhouse
+host: "clickhouse"
+port: "9000"
+username: "dbt_user"
+password: "{{ .env.CLICKHOUSE_PASSWORD }}"
+database: "analytics"
+ssl: false
