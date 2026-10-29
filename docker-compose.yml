@@ -31,7 +31,8 @@ services:
       dockerfile: Dockerfile
     container_name: producer
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     restart: unless-stopped
@@ -40,15 +41,60 @@ services:
     build:
       context: ./consumer
       dockerfile: Dockerfile
+    env_file:
+      - .env
     container_name: consumer
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      DUCKDB_PATH: /app/data/warehouse.duckdb
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    container_name: clickhouse
+    ports:
+      - "8123:8123"   # HTTP (dbt, Metabase)
+      - "9000:9000"   # Native TCP
     volumes:
-      - ./data:/app/data
+      - clickhouse-data:/var/lib/clickhouse
+      - ./clickhouse-init:/docker-entrypoint-initdb.d:ro
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "dbt_user", "--password", "dbt_pass", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dbt:
+    build:
+      context: ./dbt
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./dbt/dbt_project:/usr/app
+      - ./dbt/profiles.yml:/root/.dbt/profiles.yml
+    working_dir: /usr/app
+    environment:
+      DBT_PROFILES_DIR: /root/.dbt
+      DBT_RUN_INTERVAL: 60
+    depends_on:
+      clickhouse:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   kafka-data:
+  clickhouse-data:

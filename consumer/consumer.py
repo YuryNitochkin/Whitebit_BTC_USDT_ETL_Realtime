@@ -1,15 +1,42 @@
 import json
 import os
 import signal
-
-import duckdb
 from confluent_kafka import Consumer, KafkaError
+import clickhouse_connect
+from clickhouse_connect.driver.client import Client
+
 
 KAFKA_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9094")
 TOPIC = "raw-data"
-DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/app/data/warehouse.duckdb")
 
 running = True
+
+def get_clickhouse_client() -> Client:
+    """Создаёт клиент ClickHouse из переменных окружения."""
+    return clickhouse_connect.get_client(
+        host=os.getenv("CLICKHOUSE_HOST", "localhost"),
+        port=int(os.getenv("CLICKHOUSE_PORT", "8123")),
+        username=os.getenv("CLICKHOUSE_USER", "default"),
+        password=os.getenv("CLICKHOUSE_PASSWORD", ""),
+        database=os.getenv("CLICKHOUSE_DATABASE", "analytics"),
+    )
+
+def init_db() -> Client:
+    """Создаёт таблицу (если нет) и возвращает клиент."""
+    client = get_clickhouse_client()
+    
+    client.command("""
+        CREATE TABLE IF NOT EXISTS analytics.raw_trades
+        (
+            payload String,
+            ingested_at DateTime DEFAULT now()
+        )
+        ENGINE = MergeTree()
+        ORDER BY ingested_at
+        SETTINGS index_granularity = 8192;
+    """)
+    
+    return client
 
 
 def shutdown(signum, frame):
@@ -22,17 +49,6 @@ signal.signal(signal.SIGINT, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
 
 
-def init_db(con):
-    """Создаём таблицу для сырых JSON-сообщений."""
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS raw_trades (
-            payload      JSON,
-            ingested_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    print("Таблица raw_trades готова.")
-
-
 def main():
     print(f"Подключаемся к Kafka: {KAFKA_SERVERS}")
     consumer = Consumer({
@@ -43,9 +59,7 @@ def main():
     })
     consumer.subscribe([TOPIC])
 
-    print(f"Открываем DuckDB: {DUCKDB_PATH}")
-    con = duckdb.connect(DUCKDB_PATH)
-    init_db(con)
+    chclient = init_db()
 
     print("Начинаем читать сообщения...")
     while running:
@@ -66,17 +80,18 @@ def main():
             if data.get("method") != "trades_update":
                 continue
 
-            con.execute(
-                "INSERT INTO raw_trades (payload) VALUES (?)",
-                [raw],
-            )
+            chclient.insert(
+                            "analytics.raw_trades",
+                            [[raw]],  # данные передаются как список строк (каждая строка — список значений)
+                            column_names=["payload"]
+                        )
             print("Записано 1 сообщение в raw_trades")
         except Exception as e:
             print(f"Ошибка обработки сообщения: {e}")
 
     print("Закрываем соединения...")
     consumer.close()
-    con.close()
+    chclient.close()
     print("Готово.")
 
 
