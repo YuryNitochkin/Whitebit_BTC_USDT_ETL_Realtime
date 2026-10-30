@@ -61,7 +61,6 @@ services:
       - "9000:9000"   # Native TCP
     volumes:
       - clickhouse-data:/var/lib/clickhouse
-      - ./clickhouse-init:/docker-entrypoint-initdb.d:ro
     environment:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
