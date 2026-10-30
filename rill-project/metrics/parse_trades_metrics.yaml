@@ -7,7 +7,8 @@ type: metrics_view
 
 display_name: Parse Trades
 connector: clickhouse
-model: parse_trades
+table: parse_trades          # было model: parse_trades
+database_schema: analytics   # добавь эту строку
 timeseries: trade_time
 
 dimensions:
@@ -66,6 +67,7 @@ measures:
 explore:
   display_name: Whitebit BTC_USDT realtime
   time_ranges:
+    - PT5M
     - PT15M
     - PT30M
     - PT1H
@@ -89,4 +91,4 @@ explore:
       - max_price_measure_measure
     dimensions:
       - side
-    time_range: 60m as of latest/m+1m
+    time_range: 15m as of latest/m+1m

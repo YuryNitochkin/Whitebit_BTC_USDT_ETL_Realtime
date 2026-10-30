@@ -99,11 +99,19 @@ services:
     container_name: rill-data
     user: "1000:1000"
     restart: unless-stopped
-    command: ["start", "/rill-data"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for parse_trades table to exist..."
+        until curl -s "http://clickhouse:8123/?query=EXISTS%20TABLE%20analytics.parse_trades" | grep -q "1"; do
+          echo "Table not ready yet, sleeping 2s..."
+          sleep 2
+        done
+        echo "Table found! Starting Rill with --reset..."
+        exec rill start /rill-data --reset
     ports:
       - "9009:9009"
     volumes:
-      # Сюда будешь класть файлы проекта Rill
       - ./rill-project:/rill-data
     depends_on:
       clickhouse:
