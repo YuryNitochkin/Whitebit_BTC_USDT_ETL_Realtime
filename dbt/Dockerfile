@@ -13,6 +13,3 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-# CMD ["dbt", "run"]
-# Проект и profiles.yml будем монтировать через compose,
-# поэтому здесь ничего не копируем.

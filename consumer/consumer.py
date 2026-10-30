@@ -12,7 +12,7 @@ TOPIC = "raw-data"
 running = True
 
 def get_clickhouse_client() -> Client:
-    """Создаёт клиент ClickHouse из переменных окружения."""
+    """Creates Clickhouse client from enviroment variables."""
     return clickhouse_connect.get_client(
         host=os.getenv("CLICKHOUSE_HOST", "localhost"),
         port=int(os.getenv("CLICKHOUSE_PORT", "8123")),
@@ -22,7 +22,7 @@ def get_clickhouse_client() -> Client:
     )
 
 def init_db() -> Client:
-    """Создаёт таблицу (если нет) и возвращает клиент."""
+    """Creates table and returns client"""
     client = get_clickhouse_client()
     
     client.command("""
@@ -41,7 +41,7 @@ def init_db() -> Client:
 
 def shutdown(signum, frame):
     global running
-    print("Получен сигнал завершения, останавливаемся...")
+    print("The ending signal was received, stopping...")
     running = False
 
 
@@ -50,7 +50,7 @@ signal.signal(signal.SIGTERM, shutdown)
 
 
 def main():
-    print(f"Подключаемся к Kafka: {KAFKA_SERVERS}")
+    print(f"Connecting to KAFKA: {KAFKA_SERVERS}")
     consumer = Consumer({
         "bootstrap.servers": KAFKA_SERVERS,
         "group.id": "duckdb-consumer",
@@ -61,7 +61,7 @@ def main():
 
     chclient = init_db()
 
-    print("Начинаем читать сообщения...")
+    print("Starting to read messages...")
     while running:
         msg = consumer.poll(timeout=1.0)
         if msg is None:
@@ -69,30 +69,29 @@ def main():
         if msg.error():
             if msg.error().code() == KafkaError._PARTITION_EOF:
                 continue
-            print(f"Ошибка Kafka: {msg.error()}")
+            print(f"Error of Kafka: {msg.error()}")
             continue
 
         try:
             raw = msg.value().decode("utf-8")
             data = json.loads(raw)
 
-            # Пишем только trades_update, остальное игнорируем
             if data.get("method") != "trades_update":
                 continue
 
             chclient.insert(
                             "analytics.raw_trades",
-                            [[raw]],  # данные передаются как список строк (каждая строка — список значений)
+                            [[raw]], 
                             column_names=["payload"]
                         )
-            print("Записано 1 сообщение в raw_trades")
+            print("One message was written to raw_trades")
         except Exception as e:
-            print(f"Ошибка обработки сообщения: {e}")
+            print(f"Error of message processing: {e}")
 
-    print("Закрываем соединения...")
+    print("Closing the connection...")
     consumer.close()
     chclient.close()
-    print("Готово.")
+    print("Done.")
 
 
 if __name__ == "__main__":

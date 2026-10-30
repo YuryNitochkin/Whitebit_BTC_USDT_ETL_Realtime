@@ -2,5 +2,5 @@ name: 'dbt_project'
 version: '1.0.0'
 config-version: 2
 
-profile: 'dbt-profile'    # ← должно совпадать с именем профиля в profiles.yml
+profile: 'dbt-profile'    # ← must be the same as name in profiles.yml
 model-paths: ["models"]

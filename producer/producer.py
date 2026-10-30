@@ -25,14 +25,14 @@ async def producer_loop():
             async with websockets.connect(WS_URL) as ws:
                 print("Connected to WhiteBIT")
 
-                # Подписка на trades
+                # Subscription on trades
                 await ws.send(json.dumps({
                     "id": 1,
                     "method": "trades_subscribe",
                     "params": ["BTC_USDT"]
                 }))
 
-                # Пинг каждые 50 секунд
+                # Ping every 50 seconds
                 async def ping_loop():
                     while True:
                         await asyncio.sleep(50)
@@ -48,11 +48,11 @@ async def producer_loop():
                     async for message in ws:
                         data = json.loads(message)
 
-                        # Игнорируем pong и прочие служебные сообщения
+                        # Ignoring some non business messages
                         if data.get("method") != "trades_update":
                             continue
 
-                        # Отправляем в Kafka
+                        # Sending to Kafka
                         kafka_producer.produce(
                             topic=TOPIC,
                             value=json.dumps(data).encode("utf-8"),

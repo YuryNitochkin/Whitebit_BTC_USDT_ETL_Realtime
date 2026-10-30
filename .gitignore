@@ -1,13 +1,9 @@
-# Byte-compiled / optimized / DLL files
+
 __pycache__/
 *.py[codz]
 *$py.class
-
-# Данные DuckDB — создаются автоматически
 data/*.duckdb
 data/*.duckdb.wal
-
-# Python
 __pycache__/
 *.pyc
 .venv/
@@ -22,8 +18,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
-
-# Логи
 *.log
 
 # C extensions
