@@ -91,4 +91,4 @@ explore:
       - max_price_measure_measure
     dimensions:
       - side
-    time_range: 15m as of latest/m+1m
+    time_range: 60m as of latest/m+1m

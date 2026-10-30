@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}====================================================${NC}"
-echo -e "${BLUE}   🚀 Starting Data Engineering Portfolio Project 1 ${NC}"
+echo -e "${BLUE}   🚀 Whitebit BTC USDT ETL Realtime starting ${NC}"
 echo -e "${BLUE}====================================================${NC}"
 
 # 1. Check Docker
@@ -21,29 +21,39 @@ fi
 echo -e "\n${YELLOW}[1/3] Building and starting containers...${NC}"
 docker compose up -d > /dev/null 2>&1 &
 
-# 3. Spinner
+# 3. Wait for ClickHouse to be healthy AND parse_trades table to have data
 spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 spin_idx=0
-MAX_WAIT=60
+MAX_WAIT=600
 COUNTER=0
+STATUS_MSG="[2/3] Waiting for data pipeline to initialize and receive first trades..."
 
-echo -e -n "${YELLOW}[2/3] Waiting for Rill to initialize (this may take up to 30 seconds)... ${NC}"
+echo -e -n "${YELLOW}${STATUS_MSG} ${NC}"
 
-until curl -s http://localhost:9009 > /dev/null; do
-    # \r returns cursor to start of line, then prints spinner
-    printf "\r${YELLOW}[2/3] Waiting for Rill to initialize (this may take up to 30 seconds)... ${spinner[$spin_idx]}${NC}"
+# Wait for ClickHouse to have at least one row
+until COUNT=$(docker exec clickhouse clickhouse-client --query 'SELECT count() FROM analytics.parse_trades' 2>/dev/null) && [ "$COUNT" -gt 0 ]; do
+    printf "\r\033[K${YELLOW}${STATUS_MSG} ${spinner[$spin_idx]}${NC}"
     spin_idx=$(( (spin_idx + 1) % 10 ))
-    sleep 1
-    COUNTER=$((COUNTER + 1))
+    sleep 2
+    COUNTER=$((COUNTER + 2))
     if [ $COUNTER -ge $MAX_WAIT ]; then
-        echo -e "\n${YELLOW}⚠️  Wait time exceeded. Rill might still be starting.${NC}"
+        echo -e "\n${RED}⚠️  Wait time exceeded. Data might not have arrived yet.${NC}"
         break
     fi
 done
 
-# Final state of the lineecho -e "\r${GREEN}[2/3] Rill initialized successfully! ${NC}                                                    "
-# 4. Link
-LINK="http://localhost:9009/explore/parse_trades_metrics?tr=60m+as+of+latest%2Fm%2B1m"
+# Clear spinner line
+printf "\r\033[K"
+echo -e "${GREEN}✔ Data received!${NC}"
+
+# 4. Force Rill to re-read metrics view
+echo -e "${YELLOW}[3/3] Forcing Rill to refresh metrics view...${NC}"
+docker exec rill-data rill project refresh --metrics-view parse_trades_metrics --local > /dev/null 2>&1 || true
+sleep 1m
+echo -e "${GREEN}✔ Metrics view refreshed!${NC}"
+
+# 5. Link
+LINK="http://localhost:9009/explore/parse_trades_metrics"
 
 echo -e "\n${GREEN}====================================================${NC}"
 echo -e "${GREEN}   🎉 Project successfully launched!${NC}"
