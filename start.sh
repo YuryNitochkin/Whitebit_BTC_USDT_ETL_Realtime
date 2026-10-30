@@ -42,9 +42,7 @@ until COUNT=$(docker exec clickhouse clickhouse-client --query 'SELECT count() F
     fi
 done
 
-# Clear spinner line
-printf "\r\033[K"
-echo -e "${GREEN}✔ Data received!${NC}"
+echo -e "\n${GREEN}✔ Data received!${NC}"
 
 # 4. Force Rill to re-read metrics view
 echo -e "${YELLOW}[3/3] Forcing Rill to refresh metrics view...${NC}"
