@@ -31,13 +31,13 @@ graph TD
     RILL["Rill (Live connector to ClickHouse)"]:::rill
     BR["Web Browser (http://localhost:9009)"]:::browser
 
-    WB ==>|WebSocket stream| KP
-    KP ==>|Produces| KB
-    KB ==>|Consumes| KC
-    KC ==>|Writes raw JSON| CH
-    CH ==>|Source data| DBT
-    DBT ==>|Transformed models| RILL
-    RILL ==>|Live dashboard| BR
+    WB ==> KP
+    KP ==> KB
+    KB ==> KC
+    KC ==> CH
+    CH ==> DBT
+    DBT ==> RILL
+    RILL ==> BR
 
     linkStyle default stroke:#4B5563,stroke-width:2px
 ```
